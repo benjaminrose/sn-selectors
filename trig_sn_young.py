@@ -22,8 +22,9 @@ from alerce.core import Alerce
 from astropy.time import Time
 from rich import print
 
+ROOT_LOC = path(__file__).partent.resolve()
 NOW = Time.now()
-log_file = Path(f"{NOW.mjd:.0f}/{NOW.mjd:.0f}.log")
+log_file = ROOT_LOC / Path(f"{NOW.mjd:.0f}/{NOW.mjd:.0f}.log")
 log_file.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -174,7 +175,7 @@ logger.info(f"sending {len(apo)} objects to APO and {len(lco)} objects to LCO")
 
 #save files
 for telescope, data in [("apo", apo), ("lco", lco)]:
-    filepath = Path(f"{NOW.mjd:.0f}/trig_sn_young_{telescope}_{NOW.mjd:.0f}.csv")
+    filepath = ROOT_LOC / Path(f"{NOW.mjd:.0f}/trig_sn_young_{telescope}_{NOW.mjd:.0f}.csv")
     filepath.parent.mkdir(parents=True, exist_ok=True)
     data.to_csv(filepath)
     logger.info(f"saved file {filepath}")
