@@ -22,7 +22,7 @@ from alerce.core import Alerce
 from astropy.time import Time
 from rich import print
 
-ROOT_LOC = path(__file__).partent.resolve()
+ROOT_LOC = Path(__file__).parent.resolve()
 NOW = Time.now()
 log_file = ROOT_LOC / Path(f"{NOW.mjd:.0f}/{NOW.mjd:.0f}.log")
 log_file.parent.mkdir(parents=True, exist_ok=True)
