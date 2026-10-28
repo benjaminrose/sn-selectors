@@ -163,14 +163,14 @@ objects["program"] = ["sn_young"]*len(objects)
 objects["sky_brightness_mode"] = ["dark"]*len(objects)
 objects["n_exposures"] = [4]*len(objects)
 objects["active"] = [True]*len(objects)
-objects.rename(columns={
+objects = objects.rename(columns={
     "meanra": "ra",
     "meandec": "dec",
 })
 
 #split between two telescopes
-apo = objects[list(objects["meandec"]>args.dec)]
-lco = objects[list(objects["meandec"]<args.dec)]
+apo = objects[list(objects["dec"]>args.dec)]
+lco = objects[list(objects["dec"]<args.dec)]
 logger.info(f"sending {len(apo)} objects to APO and {len(lco)} objects to LCO")
 
 #save files
