@@ -1,8 +1,12 @@
 """Tests for trig_sn_young's mapping into the TRIGGER output format."""
 
+from typing import ClassVar
+
 import numpy as np
 import pandas as pd
 import pytest
+import yaml
+from astropy.time import Time
 
 import trig_sn_young
 from trig_sn_young import (
@@ -146,7 +150,10 @@ def test_deduplicate_few_objects(sample_objects, n):
 class _EmptyAlerce:
     """Mimics alerce: an empty result with index="oid" raises KeyError."""
 
+    last_kwargs: ClassVar[dict] = {}
+
     def query_objects(self, **kwargs):
+        _EmptyAlerce.last_kwargs = kwargs
         if "index" in kwargs:
             raise KeyError("None of ['oid'] are in the columns")
         return pd.DataFrame()
@@ -154,7 +161,8 @@ class _EmptyAlerce:
 
 def test_query_alerce_no_objects(monkeypatch):
     monkeypatch.setattr(trig_sn_young, "Alerce", _EmptyAlerce)
-    out = trig_sn_young.query_alerce(parse_cli([]))
+    out = trig_sn_young.query_alerce(parse_cli(["-a", "7"]), now_mjd=61368.25)
+    assert _EmptyAlerce.last_kwargs["firstmjd"] == [61361.25, 61368.25]
     assert len(out) == 0
     assert {"discmjd", "ra", "dec", "probability"} <= set(out.columns)
 
@@ -177,7 +185,7 @@ def test_query_tns_untyped_page(monkeypatch):
 
 def test_main_empty_night_writes_header_only(monkeypatch, tmp_path):
     empty = trig_sn_young.empty_shared_frame
-    monkeypatch.setattr(trig_sn_young, "query_alerce", lambda args: empty())
+    monkeypatch.setattr(trig_sn_young, "query_alerce", lambda args, now_mjd: empty())
     monkeypatch.setattr(trig_sn_young, "query_tns", lambda args: empty())
     trig_sn_young.main(["--output-root", str(tmp_path)])
     (run_dir,) = tmp_path.iterdir()
@@ -185,3 +193,30 @@ def test_main_empty_night_writes_header_only(monkeypatch, tmp_path):
     assert len(pd.read_csv(csv)) == 0
     assert "merit" in pd.read_csv(csv).columns
     assert next(run_dir.glob("*_meta.yaml")).exists()
+
+
+def test_main_uses_one_start_time(monkeypatch, tmp_path):
+    start = Time(61368.25, format="mjd")  # 2026-11-24 06:00 UTC
+    monkeypatch.setattr(trig_sn_young.Time, "now", staticmethod(lambda: start))
+    seen = {}
+
+    def fake_alerce(args, now_mjd):
+        seen["alerce"] = now_mjd
+        return trig_sn_young.empty_shared_frame()
+
+    def fake_build(objects, args, now_mjd):
+        seen["build"] = now_mjd
+        return build_targets(objects, args, now_mjd)
+
+    monkeypatch.setattr(trig_sn_young, "query_alerce", fake_alerce)
+    monkeypatch.setattr(
+        trig_sn_young, "query_tns", lambda args: trig_sn_young.empty_shared_frame()
+    )
+    monkeypatch.setattr(trig_sn_young, "build_targets", fake_build)
+    trig_sn_young.main(["--output-root", str(tmp_path)])
+
+    assert seen == {"alerce": start.mjd, "build": start.mjd}
+    (run_dir,) = tmp_path.iterdir()
+    assert run_dir.name == "61368"
+    meta = yaml.safe_load(next(run_dir.glob("*_meta.yaml")).read_text())
+    assert meta["selector_run"]["time_started"] == "2026-11-23T23:00:00-07:00"

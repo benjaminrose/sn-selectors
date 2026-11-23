@@ -54,6 +54,9 @@ Conventions that matter when editing:
   same night overwrites. The run fails before querying if the output root does not exist.
 - An empty target list is still written (header-only CSV): for a singular selector it deactivates yesterday's list.
 - Logging goes only to the log file (DEBUG level), configured in `main` after parsing the CLI, not at import.
+- `main` reads the clock once (`start = Time.now()`); every run date (query windows, run MJD, `observe_from`, `age`,
+  `time_started`) derives from it and is passed down as `now_mjd`. Do not call `Time.now()` elsewhere. The one
+  exception is `time_datafile`, which the spec defines as the time the data file is written.
 - Alerce queries are capped at `PAGE_SIZE = 100`; hitting the cap raises rather than silently truncating.
 - TNS is rate limited; keep the `time.sleep(6)` between pages. The query uses the public search CSV with no API key
   (TNS returns 401 for an invalid key). The bot ID and name in the User-Agent are placeholders and must not be

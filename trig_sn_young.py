@@ -26,6 +26,7 @@ import logging
 import operator
 import sys
 import time
+from datetime import UTC
 from pathlib import Path
 from typing import ClassVar
 
@@ -262,7 +263,23 @@ def compute_merit(
     return raw / raw.max()
 
 
-def query_alerce(args, survey="ztf"):
+def query_alerce(args, now_mjd: float, survey="ztf"):
+    """Query Alerce for SN-like ZTF objects first detected within ``args.age`` days.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed CLI (uses ``age`` and ``prob``).
+    now_mjd : float
+        MJD of the run start; the search window is ``[now_mjd - age, now_mjd]``.
+    survey : str, optional
+        Alerce survey name.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Shared-schema frame indexed by ZTF oid.
+    """
     PAGE_SIZE = 100
 
     # Initialize the client
@@ -277,12 +294,11 @@ def query_alerce(args, survey="ztf"):
         "format": "pandas",
     }
 
-    now = Time.now()
     logger.debug("requesting ZTF alerts from Alerce")
     ztf_objects = alerce.query_objects(
         survey=survey,
         order_by="firstmjd",
-        firstmjd=[now.mjd - args.age, now.mjd],
+        firstmjd=[now_mjd - args.age, now_mjd],
         **params,
     )
     # alerce's index="oid" raises on an empty result, so index afterwards
@@ -465,21 +481,22 @@ def build_targets(
 
 def main(argv: list[str] | None = None) -> None:
     """Run the selector and write one TRIGGER run directory."""
-    time_started = utah_isotime()
-    now = Time.now()
+    # read the clock once; every date in this run derives from the start time
+    start = Time.now()
+    time_started = utah_isotime(start.to_datetime(timezone=UTC))
     args = parse_cli(argv)
     if not args.output_root.is_dir():
         raise OSError(f"output root {args.output_root} does not exist")
-    paths = run_paths(args.output_root, SELECTOR, int(now.mjd))
+    paths = run_paths(args.output_root, SELECTOR, int(start.mjd))
     paths.run_dir.mkdir(exist_ok=True)
     setup_logging(paths.log)
     logger.debug(f"parsed cli arguments {args}")
 
-    ztf = query_alerce(args)
+    ztf = query_alerce(args, start.mjd)
     tns = query_tns(args)
     objects = pd.concat([ztf, tns], axis=0).sort_values(by="discmjd", ascending=False)
     objects = deduplicate(objects)
-    targets = build_targets(objects, args, now.mjd)
+    targets = build_targets(objects, args, start.mjd)
 
     write_run(
         targets,
