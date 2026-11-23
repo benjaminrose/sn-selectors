@@ -419,7 +419,9 @@ def query_tns(args):
 def deduplicate(objects):
     logger.debug(f"checking duplicates for {len(objects)}")
     if len(objects) < 2:
-        return objects  # sky matching needs at least two objects
+        # sky matching needs at least two objects
+        logger.debug(f"skipping deduplication: only {len(objects)} object(s)")
+        return objects
     coords = SkyCoord(ra=objects["ra"].values, dec=objects["dec"].values, unit="deg")
     # nthneighbor=2 skips self-match
     idx, sep, _ = coords.match_to_catalog_sky(coords, nthneighbor=2)

@@ -220,3 +220,13 @@ def test_main_uses_one_start_time(monkeypatch, tmp_path):
     assert run_dir.name == "61368"
     meta = yaml.safe_load(next(run_dir.glob("*_meta.yaml")).read_text())
     assert meta["selector_run"]["time_started"] == "2026-11-23T23:00:00-07:00"
+
+
+@pytest.mark.parametrize("n", [0, 1])
+def test_deduplicate_skip_is_logged(sample_objects, n, caplog):
+    caplog.set_level("DEBUG", logger="trig_sn_young")
+    trig_sn_young.deduplicate(sample_objects.iloc[:n])
+    assert any(
+        r.levelname == "DEBUG" and "skipping deduplication" in r.getMessage()
+        for r in caplog.records
+    )
