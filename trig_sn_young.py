@@ -199,7 +199,6 @@ def query_tns(args):
     BASE_URL = f"https://www.wis-tns.org/search?discovered_period_value={args.age}&discovered_period_units=days{reporting_group_string}"
     TNS_BOT_ID = "your_bot_id"
     TNS_BOT_NAME = "your_bot_name"
-    API_KEY = "your_api_key"
     headers = {
         "User-Agent": f'tns_marker{{"tns_id":{TNS_BOT_ID},"type":"bot","name":"{TNS_BOT_NAME}"}}'
     }
@@ -209,12 +208,12 @@ def query_tns(args):
     logger.debug("requesting TNS data for ztf, atlas, and asas-sn")
     while True:
         url = f"{BASE_URL}&format=csv&num_page=500&page={page}"
-        params = {"api_key": API_KEY}
-        r = requests.get(url, headers=headers, params=params)
+        # The public search needs no key; TNS returns 401 for an invalid api_key.
+        r = requests.get(url, headers=headers)
 
         if r.status_code != 200 or not r.text.strip():
             logger.warning(f"Stopping at page {page}, status {r.status_code}")
-            logger.warning(f"Used {url=}, {headers=}, {params=}")
+            logger.warning(f"Used {url=}, {headers=}")
             break
 
         df = pd.read_csv(io.StringIO(r.text))
@@ -257,14 +256,18 @@ def query_tns(args):
         )
     # from Tonry 2018
     result["probability"] = 1.0
-    result = result.rename(
-        columns={
-            "RA": "ra",
-            "DEC": "dec",
-        }
-    )
+    # TNS gives sexagesimal strings; convert to decimal degrees to match Alerce
+    coords = SkyCoord(result["RA"], result["DEC"], unit=(u.hourangle, u.deg))
+    result["ra"] = coords.ra.deg
+    result["dec"] = coords.dec.deg
     result = result.drop(
-        columns=["Discovery Date (UT)", "Discovery Filter", "Discovery Mag/Flux"]
+        columns=[
+            "RA",
+            "DEC",
+            "Discovery Date (UT)",
+            "Discovery Filter",
+            "Discovery Mag/Flux",
+        ]
     )
     return result
 
