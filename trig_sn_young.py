@@ -279,7 +279,8 @@ def deduplicate(objects):
             logger.info("as as duplicate to")
             logger.info(f"{objects.iloc[i]}")
 
-    objects = objects[keep].reset_index(drop=True)
+    # keep the index: it holds the ZTF oid or TNS name of each object
+    objects = objects[keep]
     logger.debug(f"returning {len(objects)} de-duplicated targets")
     return objects
 
