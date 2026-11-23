@@ -305,8 +305,10 @@ def clean_save(args, objects):
     objects["active"] = [True] * len(objects)
 
     # split between two telescopes
-    apo = objects[list(Angle(objects["dec"], unit="deg") > args.dec * u.arcsec)]
-    lco = objects[list(Angle(objects["dec"], unit="deg") < args.dec * u.arcsec)]
+    # objects exactly at the cutoff go to APO
+    in_north = Angle(objects["dec"].to_numpy(), unit="deg") >= args.dec * u.deg
+    apo = objects[in_north]
+    lco = objects[~in_north]
     logger.info(f"sending {len(apo)} objects to APO and {len(lco)} objects to LCO")
 
     # save files
