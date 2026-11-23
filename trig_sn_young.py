@@ -246,9 +246,12 @@ def query_tns(args):
     result["discmjd"] = result["Discovery Date (UT)"].apply(
         lambda x: convert_to_mjd(x.replace(" ", "T"))
     )
+    # "Discovery Filter" is "<band>-<system>", e.g. "orange-ATLAS" or "r-ZTF".
+    # Match the band exactly; a substring match puts "orange" into g and r.
+    band = result["Discovery Filter"].str.split("-").str[0]
     for filter in ["orange", "cyan", "u", "g", "r", "i", "z", "y"]:
         result[f"{filter}_mag"] = np.where(
-            result["Discovery Filter"].str.contains(filter, na=False),
+            band == filter,
             result["Discovery Mag/Flux"],
             np.nan,
         )
