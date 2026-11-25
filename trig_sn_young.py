@@ -48,6 +48,7 @@ from trigger_output import (
 )
 
 SELECTOR = "trig_sn_young"
+SELECTOR_TYPE = "singular"
 REPO_URL = "https://github.com/benjaminrose/sn-selectors"
 CHPC_USERNAME = "u6079968"
 DEFAULT_OUTPUT_ROOT = (
@@ -504,6 +505,7 @@ def main(argv: list[str] | None = None) -> None:
         targets,
         paths,
         selector=SELECTOR,
+        selector_type=SELECTOR_TYPE,
         repo=REPO_URL,
         chpc_username=CHPC_USERNAME,
         tag=git_tag(Path(__file__).resolve().parent),
