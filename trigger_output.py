@@ -325,6 +325,7 @@ def write_run(
     paths: RunPaths,
     *,
     selector: str,
+    selector_type: str,
     repo: str,
     chpc_username: str,
     tag: str,
@@ -362,6 +363,7 @@ def write_run(
     meta = {
         "selector_run": {
             "selector": selector,
+            "selector_type": selector_type,
             "repo": repo,
             "tag": tag,
             "time_started": time_started,

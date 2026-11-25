@@ -101,6 +101,7 @@ def test_coerce_dtypes(good_targets):
 
 WRITE_KW = {
     "selector": "trig_sn_young",
+    "selector_type": "singular",
     "repo": "https://github.com/benjaminrose/sn-selectors",
     "chpc_username": "u6079968",
     "tag": "v0.0.0",
